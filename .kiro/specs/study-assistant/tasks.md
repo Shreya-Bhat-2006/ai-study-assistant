@@ -25,7 +25,7 @@ Implement a serverless Python backend with six Lambda functions, shared utilitie
     - For any entity creation call, assert `pk == SESSION#{student_id}`
     - **Validates: Requirements 7.3**
 
-- [ ] 2. Implement `shared/parser.py` — text extraction and JSON serialization
+- [x] 2. Implement `shared/parser.py` — text extraction and JSON serialization
   - Implement PDF text extraction using PyMuPDF (`fitz`) producing `sections` list with heading/text pairs
   - Implement plain-text extraction (utf-8 decode, single section)
   - Implement `serialize(parsed) -> str` (JSON) and `deserialize(json_str) -> dict`
@@ -37,7 +37,7 @@ Implement a serverless Python backend with six Lambda functions, shared utilitie
     - Generate random document text; parse → serialize → deserialize; assert structural equivalence
     - **Validates: Requirements 8.1, 8.2, 8.3, 1.2**
 
-- [ ] 3. Implement Material Processor Lambda (`lambdas/material_processor.py`)
+- [x] 3. Implement Material Processor Lambda (`lambdas/material_processor.py`)
   - Validate `student_id` presence (400 if missing)
   - Validate file size ≤ 10 MB (400 if exceeded)
   - Validate file type is PDF or plain text (400 if unsupported)
@@ -66,7 +66,7 @@ Implement a serverless Python backend with six Lambda functions, shared utilitie
 - [ ] 4. Checkpoint — Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Implement QA Engine Lambda (`lambdas/qa_engine.py`)
+- [x] 5. Implement QA Engine Lambda (`lambdas/qa_engine.py`)
   - Validate `student_id`, `material_id`, `question` fields (400 if missing)
   - Load parsed material from DynamoDB; return 404 if not found
   - Build prompt with full material content + question
@@ -89,7 +89,7 @@ Implement a serverless Python backend with six Lambda functions, shared utilitie
     - Test 404 when material not found
     - Test 502 on Bedrock error
 
-- [ ] 6. Implement Quiz Generator Lambda (`lambdas/quiz_generator.py`)
+- [x] 6. Implement Quiz Generator Lambda (`lambdas/quiz_generator.py`)
   - Validate `student_id`, `material_id`, `num_questions` (5–20) fields (400 if missing/invalid)
   - Load parsed material from DynamoDB; return 404 if not found
   - Build quiz generation prompt; invoke Bedrock; parse structured response into Quiz object
@@ -122,7 +122,7 @@ Implement a serverless Python backend with six Lambda functions, shared utilitie
 - [ ] 7. Checkpoint — Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Implement Gap Detector Lambda (`lambdas/gap_detector.py`)
+- [x] 8. Implement Gap Detector Lambda (`lambdas/gap_detector.py`)
   - Handle two routes: POST `/quizzes/{quiz_id}/submit` and GET `/gaps`
   - **Submit path:**
     - Validate `student_id`, `quiz_id`, `answers` fields (400 listing missing fields)
@@ -166,7 +166,7 @@ Implement a serverless Python backend with six Lambda functions, shared utilitie
     - Test 400 when answer payload missing required fields
     - Test 404 when session not found on GET /gaps
 
-- [ ] 9. Implement Explanation Engine Lambda (`lambdas/explanation_engine.py`)
+- [x] 9. Implement Explanation Engine Lambda (`lambdas/explanation_engine.py`)
   - Validate `student_id`, `concept_label`, `material_id` fields (400 if missing)
   - Verify concept label exists in student's `GAP#` records; return 404 if not
   - Load parsed material from DynamoDB
@@ -190,7 +190,7 @@ Implement a serverless Python backend with six Lambda functions, shared utilitie
     - Test 404 when concept not in student's gaps
     - Test 502 on Bedrock error
 
-- [ ] 10. Implement Session Manager Lambda (`lambdas/session_manager.py`)
+- [x] 10. Implement Session Manager Lambda (`lambdas/session_manager.py`)
   - Validate `student_id` (400 if missing)
   - Load session METADATA record; return 404 if not found
   - Query all items under `SESSION#{student_id}` and group by prefix (MATERIAL, QUIZ, RESULT, GAP, QA, EXPLANATION)
