@@ -1,3 +1,5 @@
+version = 0.1
+
 [default.build.parameters]
 cached = true
 parallel = true
@@ -6,7 +8,8 @@ parallel = true
 stack_name = "study-assistant"
 resolve_s3 = true
 s3_prefix = "study-assistant"
-region = "us-east-1"
-confirm_changeset = true
+region = "ap-south-1"
+confirm_changeset = false
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "BedrockModelId=amazon.titan-text-express-v1"
+parameter_overrides = "BedrockModelId=ap.amazon.nova-lite-v1:0"
+disable_rollback = true

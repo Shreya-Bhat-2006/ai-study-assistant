@@ -1,0 +1,230 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Adaptive Concept Gap Detector & AI Study Assistant
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        TABLE_NAME:
+          Ref: StudyAssistantTable
+        BUCKET_NAME:
+          Ref: MaterialsBucket
+        BEDROCK_MODEL_ID:
+          Ref: BedrockModelId
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: amazon.titan-text-express-v1
+    Description: Amazon Bedrock model ID to use for AI inference
+Resources:
+  SharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: study-assistant-shared
+      Description: Shared utilities for the Study Assistant Lambdas
+      ContentUri: SharedLayer
+      CompatibleRuntimes:
+      - python3.13
+    Metadata:
+      BuildMethod: python3.13
+      SamResourceId: SharedLayer
+  MaterialsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: study-assistant-materials-${AWS::AccountId}-${AWS::Region}
+      VersioningConfiguration:
+        Status: Enabled
+  StudyAssistantTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: study-assistant
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: pk
+        KeyType: HASH
+      - AttributeName: sk
+        KeyType: RANGE
+      AttributeDefinitions:
+      - AttributeName: pk
+        AttributeType: S
+      - AttributeName: sk
+        AttributeType: S
+  StudyAssistantApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: study-assistant-api
+      StageName: prod
+      BinaryMediaTypes:
+      - multipart/form-data
+      Cors:
+        AllowMethods: '''GET,POST,OPTIONS'''
+        AllowHeaders: '''Content-Type,student-id,Student-Id,x-student-id,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
+  MaterialProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: study-assistant-material-processor
+      CodeUri: MaterialProcessorFunction
+      Handler: material_processor.handler
+      Description: Validates, extracts, and stores uploaded study materials
+      Policies:
+      - S3WritePolicy:
+          BucketName:
+            Ref: MaterialsBucket
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: StudyAssistantTable
+      Events:
+        UploadMaterial:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: StudyAssistantApi
+            Path: /materials
+            Method: POST
+    Metadata:
+      SamResourceId: MaterialProcessorFunction
+  QAEngineFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: study-assistant-qa-engine
+      CodeUri: QAEngineFunction
+      Handler: qa_engine.handler
+      Description: Answers student questions grounded in uploaded study materials
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: StudyAssistantTable
+      - Statement:
+        - Effect: Allow
+          Action:
+          - bedrock:InvokeModel
+          Resource: '*'
+      Events:
+        AskQuestion:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: StudyAssistantApi
+            Path: /qa
+            Method: POST
+    Metadata:
+      SamResourceId: QAEngineFunction
+  QuizGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: study-assistant-quiz-generator
+      CodeUri: QuizGeneratorFunction
+      Handler: quiz_generator.handler
+      Description: Generates multiple-choice quizzes from study materials via Bedrock
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: StudyAssistantTable
+      - Statement:
+        - Effect: Allow
+          Action:
+          - bedrock:InvokeModel
+          Resource: '*'
+      Events:
+        GenerateQuiz:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: StudyAssistantApi
+            Path: /quizzes
+            Method: POST
+    Metadata:
+      SamResourceId: QuizGeneratorFunction
+  GapDetectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: study-assistant-gap-detector
+      CodeUri: GapDetectorFunction
+      Handler: gap_detector.handler
+      Description: Scores quiz submissions and tracks concept gaps
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: StudyAssistantTable
+      Events:
+        SubmitQuiz:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: StudyAssistantApi
+            Path: /quizzes/{quiz_id}/submit
+            Method: POST
+        GetGaps:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: StudyAssistantApi
+            Path: /gaps
+            Method: GET
+    Metadata:
+      SamResourceId: GapDetectorFunction
+  ExplanationEngineFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: study-assistant-explanation-engine
+      CodeUri: ExplanationEngineFunction
+      Handler: explanation_engine.handler
+      Description: Generates targeted Bedrock explanations for concept gaps
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: StudyAssistantTable
+      - Statement:
+        - Effect: Allow
+          Action:
+          - bedrock:InvokeModel
+          Resource: '*'
+      Events:
+        GetExplanation:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: StudyAssistantApi
+            Path: /explanations
+            Method: POST
+    Metadata:
+      SamResourceId: ExplanationEngineFunction
+  SessionManagerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: study-assistant-session-manager
+      CodeUri: SessionManagerFunction
+      Handler: session_manager.handler
+      Description: Returns a student's full session summary
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: StudyAssistantTable
+      Events:
+        GetSession:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: StudyAssistantApi
+            Path: /session
+            Method: GET
+    Metadata:
+      SamResourceId: SessionManagerFunction
+Outputs:
+  ApiUrl:
+    Description: API Gateway base URL
+    Value:
+      Fn::Sub: https://${StudyAssistantApi}.execute-api.${AWS::Region}.amazonaws.com/prod
+  MaterialsBucketName:
+    Description: S3 bucket for study materials
+    Value:
+      Ref: MaterialsBucket
+  DynamoDBTableName:
+    Description: DynamoDB table name
+    Value:
+      Ref: StudyAssistantTable

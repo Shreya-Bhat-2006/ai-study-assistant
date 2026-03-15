@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Study Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    header { background: #1e293b; padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid #334155; }
+    header h1 { font-size: 1.4rem; color: #38bdf8; }
+    header span { font-size: 0.85rem; color: #64748b; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card h2 { font-size: 1rem; color: #94a3b8; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    input[type=text], textarea, input[type=file], input[type=number] {
+      width: 100%; padding: 0.6rem 0.8rem; background: #0f172a; border: 1px solid #334155;
+      border-radius: 8px; color: #e2e8f0; font-size: 0.95rem; margin-bottom: 0.75rem;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    button {
+      background: #0ea5e9; color: white; border: none; padding: 0.6rem 1.4rem;
+      border-radius: 8px; cursor: pointer; font-size: 0.95rem; transition: background 0.2s;
+    }
+    button:hover { background: #0284c7; }
+    button:disabled { background: #334155; cursor: not-allowed; }
+    .result { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: 0.9rem; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow-y: auto; }
+    .tag { display: inline-block; background: #ef4444; color: white; border-radius: 20px; padding: 0.2rem 0.7rem; font-size: 0.8rem; margin: 0.2rem; }
+    .tag.ok { background: #22c55e; }
+    .row { display: flex; gap: 0.75rem; align-items: flex-start; flex-wrap: wrap; }
+    .row input { flex: 1; min-width: 150px; }
+    label { font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 0.3rem; }
+    #studentBar { background: #1e293b; border-bottom: 1px solid #334155; padding: 0.75rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    #studentBar input { width: 220px; margin: 0; }
+    #studentBar span { font-size: 0.85rem; color: #64748b; }
+    .quiz-q { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; }
+    .quiz-q p { margin-bottom: 0.5rem; font-weight: 500; }
+    .quiz-q label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0.3rem; color: #e2e8f0; font-size: 0.9rem; }
+    .quiz-q input[type=radio] { width: auto; margin: 0; }
+    .score-bar { height: 8px; background: #334155; border-radius: 4px; margin-top: 0.3rem; }
+    .score-fill { height: 100%; border-radius: 4px; background: #22c55e; transition: width 0.5s; }
+    .score-fill.low { background: #ef4444; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🎓 AI Study Assistant</h1>
+  <span>Powered by Amazon Bedrock</span>
+</header>
+
+<div id="studentBar">
+  <span>Student ID:</span>
+  <input type="text" id="studentId" placeholder="e.g. alice123" value="demo-student" />
+  <button onclick="loadSession()">Load Session</button>
+  <span id="sessionStatus"></span>
+</div>
+
+<div class="container">
+
+  <!-- Upload Material -->
+  <div class="card">
+    <h2>📄 Upload Study Material</h2>
+    <label>Select a .txt or .pdf file</label>
+    <input type="file" id="materialFile" accept=".txt,.pdf" />
+    <button onclick="uploadMaterial()">Upload</button>
+    <div id="uploadResult" class="result" style="display:none"></div>
+  </div>
+
+  <!-- Ask a Question -->
+  <div class="card">
+    <h2>💬 Ask a Question</h2>
+    <label>Material ID</label>
+    <input type="text" id="qaMaterialId" placeholder="Paste material_id from upload" />
+    <label>Your Question</label>
+    <textarea id="qaQuestion" placeholder="e.g. What is machine learning?"></textarea>
+    <button onclick="askQuestion()">Ask</button>
+    <div id="qaResult" class="result" style="display:none"></div>
+  </div>
+
+  <!-- Generate Quiz -->
+  <div class="card">
+    <h2>📝 Generate Quiz</h2>
+    <div class="row">
+      <div style="flex:2">
+        <label>Material ID</label>
+        <input type="text" id="quizMaterialId" placeholder="Paste material_id" />
+      </div>
+      <div style="flex:1">
+        <label>Questions (5–20)</label>
+        <input type="number" id="numQuestions" value="5" min="5" max="20" />
+      </div>
+    </div>
+    <button onclick="generateQuiz()">Generate Quiz</button>
+    <div id="quizContainer" style="margin-top:1rem"></div>
+  </div>
+
+  <!-- Concept Gaps -->
+  <div class="card">
+    <h2>🔍 Concept Gaps</h2>
+    <button onclick="loadGaps()">Refresh Gaps</button>
+    <div id="gapsResult" style="margin-top:1rem"></div>
+  </div>
+
+  <!-- Get Explanation -->
+  <div class="card">
+    <h2>💡 Get Explanation</h2>
+    <label>Concept Label (from gaps)</label>
+    <input type="text" id="conceptLabel" placeholder="e.g. Machine Learning" />
+    <label>Material ID</label>
+    <input type="text" id="explMaterialId" placeholder="Paste material_id" />
+    <button onclick="getExplanation()">Explain</button>
+    <div id="explResult" class="result" style="display:none"></div>
+  </div>
+
+</div>
+
+<script>
+const API = "https://x2ar5fpnfg.execute-api.ap-south-1.amazonaws.com/prod";
+let currentQuiz = null;
+
+function studentId() { return document.getElementById("studentId").value.trim() || "demo-student"; }
+
+function show(id, text) {
+  const el = document.getElementById(id);
+  el.style.display = "block";
+  el.textContent = text;
+}
+
+async function apiCall(path, method, body, headers = {}) {
+  const opts = { method, headers: { "Content-Type": "application/json", ...headers } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const text = await r.text();
+  try { return { ok: r.ok, status: r.status, data: JSON.parse(text) }; }
+  catch { return { ok: r.ok, status: r.status, data: text }; }
+}
+
+async function loadSession() {
+  const r = await apiCall(`/session?student_id=${studentId()}`, "GET");
+  const el = document.getElementById("sessionStatus");
+  if (r.ok) {
+    el.textContent = `✅ Session loaded — ${r.data.materials?.length || 0} materials, ${r.data.gaps?.length || 0} gaps`;
+    el.style.color = "#22c55e";
+  } else {
+    el.textContent = r.data?.message || "No session yet";
+    el.style.color = "#64748b";
+  }
+}
+
+async function uploadMaterial() {
+  const file = document.getElementById("materialFile").files[0];
+  if (!file) return alert("Please select a file first");
+  const form = new FormData();
+  form.append("file", file);
+  show("uploadResult", "Uploading...");
+  const r = await fetch(API + "/materials", {
+    method: "POST",
+    headers: { "student-id": studentId() },
+    body: form
+  });
+  const data = await r.json();
+  if (r.ok) {
+    document.getElementById("uploadResult").textContent = `✅ Uploaded!\nmaterial_id: ${data.material_id}`;
+    document.getElementById("qaMaterialId").value = data.material_id;
+    document.getElementById("quizMaterialId").value = data.material_id;
+    document.getElementById("explMaterialId").value = data.material_id;
+  } else {
+    document.getElementById("uploadResult").textContent = `❌ Error: ${JSON.stringify(data, null, 2)}`;
+  }
+}
+
+async function askQuestion() {
+  const material_id = document.getElementById("qaMaterialId").value.trim();
+  const question = document.getElementById("qaQuestion").value.trim();
+  if (!material_id || !question) return alert("Fill in material ID and question");
+  show("qaResult", "Thinking...");
+  const r = await apiCall("/qa", "POST", { student_id: studentId(), material_id, question });
+  document.getElementById("qaResult").textContent = r.ok
+    ? `💬 ${r.data.answer}`
+    : `❌ ${JSON.stringify(r.data, null, 2)}`;
+}
+
+async function generateQuiz() {
+  const material_id = document.getElementById("quizMaterialId").value.trim();
+  const num_questions = parseInt(document.getElementById("numQuestions").value);
+  if (!material_id) return alert("Fill in material ID");
+  document.getElementById("quizContainer").innerHTML = "<p style='color:#64748b'>Generating quiz...</p>";
+  const r = await apiCall("/quizzes", "POST", { student_id: studentId(), material_id, num_questions });
+  if (!r.ok) {
+    document.getElementById("quizContainer").innerHTML = `<div class="result">❌ ${JSON.stringify(r.data, null, 2)}</div>`;
+    return;
+  }
+  currentQuiz = r.data;
+  renderQuiz(r.data);
+}
+
+function renderQuiz(quiz) {
+  const c = document.getElementById("quizContainer");
+  c.innerHTML = `<p style="color:#94a3b8;margin-bottom:1rem">Quiz ID: ${quiz.quiz_id}</p>`;
+  quiz.questions.forEach((q, i) => {
+    const div = document.createElement("div");
+    div.className = "quiz-q";
+    div.innerHTML = `<p>${i+1}. ${q.text}</p>` +
+      q.options.map(opt => `<label><input type="radio" name="q${i}" value="${opt}"> ${opt}</label>`).join("") +
+      `<small style="color:#64748b">Concept: ${q.concept_label}</small>`;
+    c.appendChild(div);
+  });
+  const btn = document.createElement("button");
+  btn.textContent = "Submit Answers";
+  btn.style.marginTop = "1rem";
+  btn.onclick = submitQuiz;
+  c.appendChild(btn);
+  const res = document.createElement("div");
+  res.id = "quizResult";
+  res.className = "result";
+  res.style.display = "none";
+  c.appendChild(res);
+}
+
+async function submitQuiz() {
+  if (!currentQuiz) return;
+  const answers = currentQuiz.questions.map((q, i) => {
+    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+    return { question_id: q.question_id, answer: sel ? sel.value : "" };
+  });
+  const r = await apiCall(`/quizzes/${currentQuiz.quiz_id}/submit`, "POST",
+    { student_id: studentId(), quiz_id: currentQuiz.quiz_id, answers });
+  const el = document.getElementById("quizResult");
+  el.style.display = "block";
+  if (r.ok) {
+    const d = r.data;
+    let html = `Score: ${d.score_pct}%\n\nPer concept:\n`;
+    for (const [k, v] of Object.entries(d.per_concept || {})) html += `  ${k}: ${v}%\n`;
+    if (d.gaps?.length) html += `\n⚠️ Gaps detected: ${d.gaps.join(", ")}`;
+    el.textContent = html;
+    loadGaps();
+  } else {
+    el.textContent = `❌ ${JSON.stringify(r.data, null, 2)}`;
+  }
+}
+
+async function loadGaps() {
+  const r = await apiCall(`/gaps?student_id=${studentId()}`, "GET");
+  const el = document.getElementById("gapsResult");
+  if (r.ok && r.data.gaps?.length) {
+    el.innerHTML = r.data.gaps.map(g => `<span class="tag">${g}</span>`).join("");
+  } else if (r.ok) {
+    el.innerHTML = `<span class="tag ok">No gaps detected yet</span>`;
+  } else {
+    el.innerHTML = `<span style="color:#64748b">${r.data?.message || "No session yet"}</span>`;
+  }
+}
+
+async function getExplanation() {
+  const concept_label = document.getElementById("conceptLabel").value.trim();
+  const material_id = document.getElementById("explMaterialId").value.trim();
+  if (!concept_label || !material_id) return alert("Fill in concept label and material ID");
+  show("explResult", "Generating explanation...");
+  const r = await apiCall("/explanations", "POST", { student_id: studentId(), concept_label, material_id });
+  document.getElementById("explResult").textContent = r.ok
+    ? `💡 ${r.data.explanation}`
+    : `❌ ${JSON.stringify(r.data, null, 2)}`;
+}
+
+// Auto-load session on page load
+window.onload = loadSession;
+</script>
+</body>
+</html>

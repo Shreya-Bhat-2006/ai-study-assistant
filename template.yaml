@@ -4,12 +4,9 @@ Description: Adaptive Concept Gap Detector & AI Study Assistant
 
 Globals:
   Function:
-    Runtime: python3.12
+    Runtime: python3.13
     Timeout: 30
     MemorySize: 256
-    # Layers bundle the shared/ package so all handlers can import it
-    Layers:
-      - !Ref SharedLayer
     Environment:
       Variables:
         TABLE_NAME: !Ref StudyAssistantTable
@@ -32,9 +29,12 @@ Resources:
       Description: Shared utilities for the Study Assistant Lambdas
       ContentUri: layer/
       CompatibleRuntimes:
-        - python3.12
+        - python3.13
     Metadata:
-      BuildMethod: python3.12
+      BuildMethod: python3.13
+
+  # ── Shared utilities layer (python path fix) ───────────────────────────────
+  # Note: shared/ is copied into each Lambda's CodeUri via build process
 
   # ── S3 bucket for raw study materials ─────────────────────────────────────
   MaterialsBucket:
@@ -69,6 +69,10 @@ Resources:
       StageName: prod
       BinaryMediaTypes:
         - multipart/form-data
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,student-id,Student-Id,x-student-id,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
 
   # ── Lambda: Material Processor ─────────────────────────────────────────────
   MaterialProcessorFunction:
