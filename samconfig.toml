@@ -1,0 +1,12 @@
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.deploy.parameters]
+stack_name = "study-assistant"
+resolve_s3 = true
+s3_prefix = "study-assistant"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "BedrockModelId=amazon.titan-text-express-v1"

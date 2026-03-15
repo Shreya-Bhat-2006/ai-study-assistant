@@ -209,12 +209,12 @@ Implement a serverless Python backend with six Lambda functions, shared utilitie
 - [ ] 11. Checkpoint — Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Wire all Lambdas together and finalize integration
-  - [ ] 12.1 Create `lambdas/__init__.py` and ensure all shared imports resolve correctly across all Lambda handlers
+- [x] 12. Wire all Lambdas together and finalize integration
+  - [x] 12.1 Create `lambdas/__init__.py` and ensure all shared imports resolve correctly across all Lambda handlers
     - Verify `shared/` is on the Python path for each Lambda (e.g., via `sys.path` manipulation or packaging config)
     - _Requirements: 1.1–1.5, 2.1–2.5, 3.1–3.6, 4.1–4.5, 5.1–5.5, 6.1–6.5, 7.1–7.5_
 
-  - [ ] 12.2 Create `template.yaml` (SAM) or `serverless.yml` defining all six Lambda functions, API Gateway routes, DynamoDB table, and S3 bucket
+  - [x] 12.2 Create `template.yaml` (SAM) or `serverless.yml` defining all six Lambda functions, API Gateway routes, DynamoDB table, and S3 bucket
     - Map each route from the design's API Gateway table to its Lambda handler
     - Configure Lambda environment variables: `TABLE_NAME`, `BUCKET_NAME`, `BEDROCK_MODEL_ID`
     - _Requirements: 1.1, 2.1, 3.1, 4.1, 6.1, 7.1_

@@ -1,0 +1,4 @@
+# file: C:\Users\iamsh\Desktop\AWS_Hack\conftest.py
+# hypothesis_version: 6.151.9
+
+[100, 'AWS_ACCESS_KEY_ID', 'AWS_DEFAULT_REGION', 'AWS_SECURITY_TOKEN', 'AWS_SESSION_TOKEN', 'AttributeName', 'AttributeType', 'BEDROCK_MODEL_ID', 'BUCKET_NAME', 'HASH', 'KeyType', 'PAY_PER_REQUEST', 'RANGE', 'S', 'TABLE_NAME', 'bucket', 'ci', 'dynamodb', 'pk', 's3', 'sk', 'study-assistant', 'table', 'testing', 'us-east-1']
